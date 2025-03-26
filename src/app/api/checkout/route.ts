@@ -6,7 +6,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { amountBRL } = body;
+    const { amountBRL, uid, email, walletAddress } = body;
 
     console.log("🧾 Recebido amountBRL:", amountBRL);
 
@@ -30,8 +30,13 @@ export async function POST(req: NextRequest) {
           quantity: 1,
         },
       ],
-      // Stripe mostra os métodos disponíveis automaticamente
-      success_url: "https://app.primereserv.online/sucesso",
+      metadata: {
+        uid,
+        email,
+        walletAddress,
+        valor: amountBRL.toString(),
+      },
+      success_url: "https://app.primereserv.online/sucesso?session_id={CHECKOUT_SESSION_ID}",
       cancel_url: "https://app.primereserv.online/cancelado",
     });
 
