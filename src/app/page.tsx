@@ -39,8 +39,7 @@ export default function LoginPage() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       router.push("/dash");
-    } catch (_) {
-      // console.error(err); // Ative para debug
+    } catch {
       setError("Email ou senha incorretos. Tente novamente.");
     } finally {
       setLoading(false);
