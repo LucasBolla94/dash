@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { XCircle, Frown, RotateCcw } from 'lucide-react'
+import { XCircle, RotateCcw } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 const frases = [
