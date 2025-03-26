@@ -4,13 +4,17 @@ import Stripe from "stripe";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export async function POST(req: NextRequest) {
-  const { amountBRL } = await req.json();
-
-  if (!amountBRL || amountBRL < 50) {
-    return NextResponse.json({ error: "Valor mínimo é R$50" }, { status: 400 });
-  }
-
   try {
+    const body = await req.json();
+    const { amountBRL } = body;
+
+    console.log("🧾 Recebido amountBRL:", amountBRL);
+
+    if (!amountBRL || amountBRL < 50) {
+      console.warn("❗ Valor inválido recebido:", amountBRL);
+      return NextResponse.json({ error: "Valor mínimo é R$50" }, { status: 400 });
+    }
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["pix"],
       mode: "payment",
@@ -31,12 +35,14 @@ export async function POST(req: NextRequest) {
       cancel_url: "https://primereserv.online/cancelado",
     });
 
+    console.log("✅ Sessão criada:", session.id);
     return NextResponse.json({ sessionId: session.id });
+
   } catch (error) {
     if (error instanceof Error) {
-      console.error("Erro na criação da sessão:", error.message);
+      console.error("❌ Erro na criação da sessão Stripe:", error.message);
     } else {
-      console.error("Erro desconhecido na criação da sessão.");
+      console.error("❌ Erro desconhecido:", error);
     }
 
     return NextResponse.json({ error: "Erro ao criar sessão de pagamento" }, { status: 500 });
