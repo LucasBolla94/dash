@@ -16,7 +16,6 @@ export async function POST(req: NextRequest) {
     }
 
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["pix"],
       mode: "payment",
       line_items: [
         {
@@ -31,6 +30,7 @@ export async function POST(req: NextRequest) {
           quantity: 1,
         },
       ],
+      // Stripe mostra os métodos disponíveis automaticamente
       success_url: "https://primereserv.online/sucesso",
       cancel_url: "https://primereserv.online/cancelado",
     });
