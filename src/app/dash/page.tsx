@@ -1,125 +1,150 @@
-// src/app/dash/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import { auth, db } from "@/lib/firebase";
-import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import Link from "next/link";
-import Navbar from "@/components/Navbar";
+import { useRouter } from "next/navigation";
+import { signOut } from "firebase/auth";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  orderBy,
+  limit,
+  query,
+  where,
+} from "firebase/firestore";
+import UserCard from "./components/UserCard";
+import StatusAlert from "./components/StatusAlert";
+import FundValueCard from "./components/FundValueCard";
+import BuySellButtons from "./components/BuySellButtons";
+import PurchaseHistory from "./components/PurchaseHistory";
+import VotingForm from "./components/VotingForm";
+import VotingResults from "./components/VotingResults";
+import ContactForm from "./components/ContactForm";
 
 export default function DashboardPage() {
-  const [userData, setUserData] = useState<{
-    nome: string;
-    email: string;
-    socioTime: string;
-    socio: boolean;
-  } | null>(null);
-
-  const [authChecked, setAuthChecked] = useState(false);
-  const [userAllowed, setUserAllowed] = useState<boolean | null>(null);
+  const router = useRouter();
+  const [user, setUser] = useState(null);
+  const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [patrimonio, setPatrimonio] = useState<number | null>(null);
+  const [compras, setCompras] = useState([]);
+  const [votacaoAtiva, setVotacaoAtiva] = useState(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const docRef = doc(db, "socios", user.uid);
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          if (data.socio) {
-            setUserData({
-              nome: data.nome || "Sócio",
-              email: user.email || "",
-              socioTime: data["socio-time"] || "Desconhecida",
-              socio: true,
-            });
-            setUserAllowed(true);
-          } else {
-            setUserAllowed(false);
-          }
-        } else {
-          setUserAllowed(false);
-        }
-      } else {
-        setUserAllowed(false);
+    const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
+      if (!currentUser) {
+        router.push("/");
+        return;
       }
-      setAuthChecked(true);
+
+      setUser(currentUser);
+
+      // Buscar dados do usuário (coleção socios)
+      const docRef = doc(db, "socios", currentUser.uid);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        setUserData(docSnap.data());
+      }
+
+      // Buscar patrimônio do fundo (coleção fund-wallet, último documento)
+      const fundQuery = query(
+        collection(db, "fund-wallet"),
+        orderBy("timestamp", "desc"),
+        limit(1)
+      );
+      const fundSnap = await getDocs(fundQuery);
+      if (!fundSnap.empty) {
+        const latest = fundSnap.docs[0].data();
+        setPatrimonio(latest.total);
+      }
+
+      // Buscar compras do usuário (coleção compras)
+      const comprasQuery = query(
+        collection(db, "compras"),
+        where("uid", "==", currentUser.uid)
+      );
+      const comprasSnap = await getDocs(comprasQuery);
+      const listaCompras = comprasSnap.docs.map((doc) => doc.data());
+      setCompras(listaCompras);
+
+      // Buscar votação ativa (coleção votacoes)
+      const votacaoQuery = query(
+        collection(db, "votacoes"),
+        where("status", "==", true),
+        limit(1)
+      );
+      const votacaoSnap = await getDocs(votacaoQuery);
+      if (!votacaoSnap.empty) {
+        setVotacaoAtiva(votacaoSnap.docs[0]);
+      }
+
+      setLoading(false);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [router]);
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push("/");
+  };
+
+  if (loading || !userData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 to-purple-900 flex items-center justify-center text-white">
+        <p className="text-2xl animate-pulse">Carregando painel...</p>
+      </div>
+    );
+  }
+
+  const isActive = userData?.socio === true;
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-900 to-purple-900 text-white px-4 py-6">
-      <Navbar />
+    <main className="min-h-screen bg-gradient-to-br from-blue-900 to-purple-900 text-white p-4">
+      {/* Navbar */}
+      <nav className="flex justify-between items-center py-4 px-6 bg-white/10 rounded-xl shadow-xl mb-6">
+        <h1 className="text-3xl font-bold text-yellow-300">Painel PRV</h1>
+        <div className="space-x-4">
+          <button
+            onClick={() => router.push("/dash/buy")}
+            className="bg-yellow-400 text-black px-5 py-2 rounded-xl font-bold hover:bg-yellow-300 transition"
+          >
+            Comprar
+          </button>
+          <a
+            href="https://orca.so"
+            target="_blank"
+            className="bg-white text-purple-900 px-5 py-2 rounded-xl font-bold hover:bg-gray-100 transition"
+          >
+            Vender
+          </a>
+          <button
+            onClick={handleLogout}
+            className="bg-red-500 text-white px-5 py-2 rounded-xl font-bold hover:bg-red-400 transition"
+          >
+            Sair
+          </button>
+        </div>
+      </nav>
 
-      <section className="max-w-md mx-auto text-center">
-        {!authChecked ? (
-          <p className="text-yellow-300 animate-pulse">Carregando dados do sócio...</p>
-        ) : userAllowed ? (
-          <>
-            <h1 className="text-3xl font-bold mb-4">🎉 Bem-vindo, {userData?.nome}</h1>
-            <p className="text-lg text-white/80 mb-2">📧 {userData?.email}</p>
-            <p className="text-md text-white/60 mb-1">📆 Sócio desde: {userData?.socioTime}</p>
-            <p className="text-green-400 mb-6 font-medium">✅ Status: Sócio Ativo</p>
+      {/* Conta inativa */}
+      {!isActive && <StatusAlert />}
 
-            <div className="text-left bg-white/10 backdrop-blur-md rounded-xl p-4 text-sm text-white/80 mb-6 shadow-md">
-              <p className="mb-2 font-semibold text-yellow-400">📌 Orientações iniciais:</p>
-              <ul className="list-disc list-inside space-y-1">
-                <li>Você agora faz parte do fundo PrimeReserv</li>
-                <li>Utilize os botões abaixo para investir ou retirar</li>
-                <li>Em caso de dúvida, vá em <strong>Contato</strong> na navbar</li>
-              </ul>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <Link
-                href="/dash/buy"
-                className="bg-yellow-400 text-black py-4 rounded-xl font-bold text-lg hover:bg-yellow-300 transition text-center"
-              >
-                Comprar
-              </Link>
-              <a
-                href="https://orca.so"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-white/10 text-white py-4 rounded-xl font-bold text-lg hover:bg-white/20 transition text-center"
-              >
-                Vender
-              </a>
-            </div>
-          </>
-        ) : (
-          <div className="bg-white/10 backdrop-blur-md border border-yellow-400 rounded-xl p-6 shadow-lg animate-fade-in space-y-4">
-            <h2 className="text-xl font-bold text-yellow-300">⏳ Aguardando Aprovação</h2>
-            <p className="text-white/90 text-sm">
-              Seu cadastro foi recebido com sucesso e está em análise.
-            </p>
-            <p className="text-white/70 text-sm">
-              📩 Em breve você poderá acessar sua conta de sócio e investir com nosso token exclusivo <strong>$PRV</strong>.
-            </p>
-            <p className="text-white/70 text-sm">
-              🚀 Devido ao alto número de cadastros, a aprovação pode levar até <strong>24 horas</strong>. Fique de olho no seu e-mail!
-            </p>
-            <p className="text-white/60 text-xs italic">
-              Estamos felizes com seu interesse no fundo PrimeReserv. Quanto antes for aprovado, antes poderá garantir seus tokens!
-            </p>
-
-            <div className="mt-4">
-              <p className="text-sm text-white/80 mb-2">❓ Tem dúvidas ou precisa de ajuda com seu cadastro?</p>
-              <a
-                href="https://wa.me/447432009032"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block bg-green-500 hover:bg-green-400 text-black font-bold py-3 px-5 rounded-xl text-sm transition"
-              >
-                💬 Falar com o Suporte no WhatsApp
-              </a>
-            </div>
-          </div>
-        )}
-      </section>
+      {/* Conteúdo do painel */}
+      {isActive && (
+        <>
+          <UserCard user={userData} />
+          <FundValueCard patrimonio={patrimonio} />
+          <BuySellButtons />
+          <PurchaseHistory compras={compras} />
+          <VotingForm votacaoDoc={votacaoAtiva} user={user} />
+          <VotingResults />
+          <ContactForm user={user} />
+        </>
+      )}
     </main>
   );
 }
