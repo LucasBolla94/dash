@@ -31,8 +31,8 @@ export async function POST(req: NextRequest) {
         },
       ],
       // Stripe mostra os métodos disponíveis automaticamente
-      success_url: "https://primereserv.online/sucesso",
-      cancel_url: "https://primereserv.online/cancelado",
+      success_url: "https://app.primereserv.online/sucesso",
+      cancel_url: "https://app.primereserv.online/cancelado",
     });
 
     console.log("✅ Sessão criada:", session.id);
