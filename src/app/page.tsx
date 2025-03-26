@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import { auth } from "@/lib/firebase";
 import {
@@ -25,7 +26,7 @@ export default function LoginPage() {
     return unsubscribe;
   }, [router]);
 
-  // Configura persistência de autenticação
+  // Configura persistência local da sessão
   useEffect(() => {
     setPersistence(auth, browserLocalPersistence);
   }, []);
@@ -38,7 +39,8 @@ export default function LoginPage() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       router.push("/dash");
-    } catch (err) {
+    } catch (_) {
+      // console.error(err); // Ative para debug
       setError("Email ou senha incorretos. Tente novamente.");
     } finally {
       setLoading(false);
@@ -62,7 +64,8 @@ export default function LoginPage() {
         </h1>
 
         <p className="text-lg text-gray-300 mb-8 max-w-md mx-auto">
-          Digite seu <strong>email</strong> e <strong>senha</strong> para acessar o painel da PRV Investimentos. Interface simples e direta, pensada para você.
+          Digite seu <strong>email</strong> e <strong>senha</strong> para acessar o painel da PRV Investimentos.
+          Interface simples e direta, pensada para você.
         </p>
 
         <form
@@ -70,12 +73,14 @@ export default function LoginPage() {
           className="max-w-md mx-auto space-y-6 bg-white/10 p-8 rounded-2xl shadow-2xl"
         >
           <div>
-            <label className="block text-xl font-semibold mb-3 text-yellow-400">
+            <label htmlFor="email" className="block text-xl font-semibold mb-3 text-yellow-400">
               Email
             </label>
             <input
+              id="email"
               type="email"
               required
+              autoComplete="email"
               className="w-full px-6 py-4 bg-white/20 rounded-xl text-lg placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-400"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -84,12 +89,14 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-xl font-semibold mb-3 text-yellow-400">
+            <label htmlFor="password" className="block text-xl font-semibold mb-3 text-yellow-400">
               Senha
             </label>
             <input
+              id="password"
               type="password"
               required
+              autoComplete="current-password"
               className="w-full px-6 py-4 bg-white/20 rounded-xl text-lg placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-400"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
