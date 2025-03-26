@@ -1,4 +1,3 @@
-// src/app/api/checkout/route.ts
 import { db } from "@/lib/firebase";
 import { Timestamp, doc, setDoc, getDoc } from "firebase/firestore";
 import { NextRequest, NextResponse } from "next/server";
@@ -13,8 +12,8 @@ if (!getApps().length) {
   });
 }
 
+// Corrigido: removido apiVersion para evitar erro de tipagem
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-
 
 export async function POST(req: NextRequest) {
   try {
