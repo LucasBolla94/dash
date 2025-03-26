@@ -1,4 +1,3 @@
-// src/app/api/stripe-webhook/route.ts
 import { headers } from 'next/headers'
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
@@ -18,8 +17,13 @@ export async function POST(req: Request) {
       signature,
       process.env.STRIPE_WEBHOOK_SECRET!
     )
-  } catch (err: any) {
-    console.error('❌ Erro no webhook Stripe:', err.message)
+  } catch (err) {
+    if (err instanceof Error) {
+      console.error('❌ Erro no webhook Stripe:', err.message)
+    } else {
+      console.error('❌ Erro desconhecido no webhook Stripe')
+    }
+
     return NextResponse.json({ error: 'Webhook inválido' }, { status: 400 })
   }
 
@@ -27,7 +31,7 @@ export async function POST(req: Request) {
     const session = event.data.object as Stripe.Checkout.Session
     console.log('✅ Pagamento confirmado para:', session.customer_email || session.id)
 
-    // Aqui você pode acionar o envio de tokens no futuro
+    // Em breve: enviar tokens PRV pra carteira
   }
 
   return NextResponse.json({ received: true })

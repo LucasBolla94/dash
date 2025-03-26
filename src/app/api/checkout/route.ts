@@ -1,4 +1,3 @@
-// src/app/api/checkout-session/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 
@@ -33,8 +32,13 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ sessionId: session.id });
-  } catch (error: any) {
-    console.error("Erro na criação da sessão:", error.message);
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error("Erro na criação da sessão:", error.message);
+    } else {
+      console.error("Erro desconhecido na criação da sessão.");
+    }
+
     return NextResponse.json({ error: "Erro ao criar sessão de pagamento" }, { status: 500 });
   }
 }
